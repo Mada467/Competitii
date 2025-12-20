@@ -1,51 +1,14 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Platformă Competiții</title>
-    <link rel="stylesheet" href="CSS/index.css">
-</head>
-<body>
-<div class="header">
-    <div class="header-content">
-        <div class="logo"> Platformă Competiții</div>
-        <nav class="nav">
-            <a href="index.jsp">Acasă</a>
-            <% if(session.getAttribute("user") != null) { %>
-            <a href="my-competitions.jsp">Competițiile Mele</a>
-            <a href="logout.jsp">Ieșire</a>
-            <% } else { %>
-            <a href="login.jsp">Autentificare</a>
-            <a href="register.jsp">Înregistrare</a>  <% } %>
-        </nav>
-    </div>
-</div>
+<%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@taglib prefix="t" tagdir="/WEB-INF/tags" %>
 
-<div class="container">
-    <div class="welcome-banner">
-        <h1>Bine ai venit!</h1>
-        <p>Descoperă competițiile disponibile și participă</p>
+<t:pageTemplate pageTitle="Competitii - Home">
+  <div class="py-5 text-center">
+    <h1 class="display-5 fw-bold text-body-emphasis">Bine ai venit la Competitii!</h1>
+    <div class="col-lg-6 mx-auto">
+      <p class="lead mb-4">Aceasta este o platformă modernă pentru gestionarea concursurilor academice. Proiect realizat conform Laboratorului 2.</p>
+      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+        <a href="${pageContext.request.contextPath}/about.jsp" class="btn btn-primary btn-lg px-4 gap-3">Află mai multe</a>
+      </div>
     </div>
-
-    <div class="tabs">
-        <button class="tab active" onclick="showUpcoming()">Competiții Viitoare</button>
-        <button class="tab" onclick="showPast()">Competiții Trecute</button>
-    </div>
-
-    <div class="search-bar">
-        <input type="text" placeholder=" Caută competiții după cuvinte cheie...">
-    </div>
-
-    <div class="empty-state">
-        <div class="empty-state-icon">📭</div>
-        <h2>Momentan nu există competiții</h2>
-        <p>Revino mai târziu pentru a vedea competițiile disponibile</p>
-    </div>
-
-    <div class="competition-grid" id="competitionGrid" style="display: none;">
-    </div>
-</div>
-
-<script src="JS/index.js"></script>
-</body>
-</html>
+  </div>
+</t:pageTemplate>
