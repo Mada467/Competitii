@@ -1,0 +1,231 @@
+/* Index - Cosa Nostra Style */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Georgia', serif;
+    background: #f5f1ed;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #3e2723, #5d4037);
+    color: #efebe9;
+    padding: 25px 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    border-bottom: 4px solid #ff6f00;
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 28px;
+    font-weight: 700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.nav {
+    display: flex;
+    gap: 15px;
+}
+
+.nav a {
+    color: #efebe9;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.nav a:hover {
+    background: rgba(255, 111, 0, 0.2);
+    border-color: #ff6f00;
+}
+
+/* Container */
+.container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+/* Banner */
+.welcome-banner {
+    background: linear-gradient(135deg, #bf360c, #ff6f00);
+    color: white;
+    padding: 40px;
+    border-radius: 15px;
+    margin-bottom: 40px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(191, 54, 12, 0.3);
+}
+
+.welcome-banner h1 {
+    font-size: 42px;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.welcome-banner p {
+    font-size: 18px;
+    font-style: italic;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.tab {
+    padding: 15px 30px;
+    background: white;
+    border: 3px solid #a1887f;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    color: #3e2723;
+    transition: all 0.3s;
+}
+
+.tab.active {
+    background: linear-gradient(135deg, #bf360c, #ff6f00);
+    color: white;
+    border-color: #ff6f00;
+}
+
+/* Search */
+.search-bar {
+    margin-bottom: 30px;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 18px;
+    border: 3px solid #a1887f;
+    border-radius: 10px;
+    font-size: 16px;
+    background: white;
+    font-family: 'Georgia', serif;
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: #ff6f00;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    background: white;
+    border-radius: 15px;
+    border: 3px dashed #a1887f;
+}
+
+.empty-state-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+}
+
+.empty-state h2 {
+    color: #3e2723;
+    margin-bottom: 15px;
+    font-size: 28px;
+}
+
+.empty-state p {
+    color: #5d4037;
+    font-size: 16px;
+}
+
+/* Competition Cards */
+.competition-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 25px;
+}
+
+.competition-card {
+    background: linear-gradient(145deg, #efebe9, #d7ccc8);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    border: 3px solid #a1887f;
+    transition: transform 0.3s;
+}
+
+.competition-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 30px rgba(191, 54, 12, 0.3);
+}
+
+.competition-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #3e2723;
+    margin-bottom: 12px;
+}
+
+.competition-date {
+    color: #ff6f00;
+    font-weight: 600;
+    margin-bottom: 18px;
+}
+
+.competition-description {
+    color: #5d4037;
+    line-height: 1.8;
+    margin-bottom: 18px;
+}
+
+.tags {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.tag {
+    background: #ffccbc;
+    color: #bf360c;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 2px solid #ff6f00;
+}
+
+/* Button */
+.btn-primary {
+    background: linear-gradient(135deg, #bf360c, #ff6f00);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 12px rgba(191, 54, 12, 0.3);
+    transition: transform 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+}
