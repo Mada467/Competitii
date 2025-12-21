@@ -7,6 +7,10 @@ import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.IOException;
 
+/**
+ * Servlet pentru înregistrarea utilizatorilor noi.
+ * Gestionează atribuirea rolului în funcție de tipul de email introdus.
+ */
 @WebServlet(name = "Register", value = "/Register")
 public class Register extends HttpServlet {
 
@@ -23,6 +27,7 @@ public class Register extends HttpServlet {
         String username = request.getParameter("username");
         String password = request.getParameter("password");
 
+        // Preluăm cele 3 tipuri de email posibile
         String emailStudent = request.getParameter("email_student");
         String emailElev = request.getParameter("email_elev");
         String emailStaff = request.getParameter("email_staff");
@@ -30,35 +35,49 @@ public class Register extends HttpServlet {
         String finalEmail = "";
         String finalRole = "";
 
-        if (emailStudent != null && !emailStudent.trim().isEmpty()) {
+        // Determinăm rolul și email-ul valid
+        if (isValid(emailStudent)) {
             if (!emailStudent.toLowerCase().endsWith("@ulbsibiu.ro")) {
-                sendError(request, response, "Email-ul de student trebuie să fie @ulbsibiu.ro!");
+                sendError(request, response, "Email-ul de student trebuie să conțină @ulbsibiu.ro!");
                 return;
             }
             finalEmail = emailStudent;
             finalRole = "STUDENT";
-        }
-        else if (emailElev != null && !emailElev.trim().isEmpty()) {
+        } else if (isValid(emailElev)) {
             if (!emailElev.toLowerCase().endsWith("@elev.com")) {
-                sendError(request, response, "Email-ul de elev trebuie să fie @elev.com!");
+                sendError(request, response, "Email-ul de elev trebuie să conțină @elev.com!");
                 return;
             }
             finalEmail = emailElev;
-            finalRole = "ELEV"; // Salvăm ca ELEV
-        }
-        else if (emailStaff != null && !emailStaff.trim().isEmpty()) {
+            finalRole = "ELEV";
+        } else if (isValid(emailStaff)) {
             finalEmail = emailStaff;
             finalRole = "REPRESENTATIVE";
-        }
-        else {
-            sendError(request, response, "Te rugăm să completezi una dintre cele 3 casete!");
+        } else {
+            sendError(request, response, "Te rugăm să completezi una dintre cele 3 secțiuni de email!");
             return;
         }
 
-        usersBean.createUser(username, finalEmail, password, finalRole);
-        response.sendRedirect(request.getContextPath() + "/Login?registered=true");
+        // Încercăm crearea utilizatorului și verificăm dacă succesul a fost confirmat de Bean
+        boolean success = usersBean.createUser(username, finalEmail, password, finalRole);
+
+        if (success) {
+            response.sendRedirect(request.getContextPath() + "/Login?registered=true");
+        } else {
+            sendError(request, response, "Numele de utilizator este deja folosit. Alege altul!");
+        }
     }
 
+    /**
+     * Verifică dacă un string de intrare nu este null sau gol.
+     */
+    private boolean isValid(String input) {
+        return input != null && !input.trim().isEmpty();
+    }
+
+    /**
+     * Trimite un mesaj de eroare către pagina de înregistrare.
+     */
     private void sendError(HttpServletRequest req, HttpServletResponse resp, String msg) throws ServletException, IOException {
         req.setAttribute("error", msg);
         req.getRequestDispatcher("/WEB-INF/pages/register.jsp").forward(req, resp);

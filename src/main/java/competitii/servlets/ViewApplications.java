@@ -12,6 +12,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * Servlet pentru vizualizarea detaliată a unei competiții.
+ * Calculează statistici pentru bara de progres și lista de participanți.
+ */
 @WebServlet(name = "ViewApplications", value = "/ViewApplications")
 public class ViewApplications extends HttpServlet {
 
@@ -20,42 +24,62 @@ public class ViewApplications extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+
+        // 1. Validare parametru ID
+        if (idParam == null || idParam.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/Competitions");
+            return;
+        }
+
         try {
-            String idParam = request.getParameter("id");
-            if (idParam == null || idParam.trim().isEmpty()) {
-                response.sendRedirect(request.getContextPath() + "/Competitions");
+            Long competitionId = Long.parseLong(idParam);
+            Competition competition = competitionsBean.findById(competitionId);
+
+            // Verificăm dacă competiția chiar există în DB
+            if (competition == null) {
+                response.sendRedirect(request.getContextPath() + "/Competitions?error=notFound");
                 return;
             }
 
-            Long competitionId = Long.parseLong(idParam);
-            Competition competition = competitionsBean.findById(competitionId);
             List<Application> applications = competitionsBean.getApplicationsForCompetition(competitionId);
 
-            // --- CALCULE STATISTICE ---
+            // 2. Calculăm statisticile pentru Dashboard (Progress Bar)
             long totalInscrisi = applications.size();
-            long aprobati = applications.stream()
-                    .filter(a -> "ACCEPTED".equals(a.getStatus()))
-                    .count();
-            long inAsteptare = totalInscrisi - aprobati;
+            long aprobati = countByStatus(applications, "ACCEPTED");
+            long respinsi = countByStatus(applications, "REJECTED");
+            long inAsteptare = totalInscrisi - aprobati - respinsi;
 
-            // Calculăm procentul de ocupare (câți s-au înscris față de capacitatea maximă)
-            int procentOcupare = 0;
-            if (competition.getMaxParticipants() != null && competition.getMaxParticipants() > 0) {
-                procentOcupare = (int) ((totalInscrisi * 100) / competition.getMaxParticipants());
-            }
+            // 3. Calculăm procentul de ocupare
+            int procentOcupare = calculateOccupancy(totalInscrisi, competition.getMaxParticipants());
 
-            // Trimitem toate datele către JSP
+            // 4. Setăm atributele pentru JSP
             request.setAttribute("competition", competition);
             request.setAttribute("applications", applications);
             request.setAttribute("total", totalInscrisi);
             request.setAttribute("aprobati", aprobati);
             request.setAttribute("asteptare", inAsteptare);
-            request.setAttribute("procent", procentOcupare);
+            request.setAttribute("procent", Math.min(procentOcupare, 100)); // Nu depășim 100% vizual
 
             request.getRequestDispatcher("/WEB-INF/pages/viewApplications.jsp").forward(request, response);
 
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/Competitions?error=invalidId");
         } catch (Exception e) {
-            response.sendRedirect(request.getContextPath() + "/Competitions?error=true");
+            response.sendRedirect(request.getContextPath() + "/Competitions?error=generic");
         }
+    }
+
+    // --- METODE HELPER (Simplifică logica din doGet) ---
+
+    private long countByStatus(List<Application> apps, String status) {
+        return apps.stream()
+                .filter(a -> status.equals(a.getStatus()))
+                .count();
+    }
+
+    private int calculateOccupancy(long current, Integer max) {
+        if (max == null || max <= 0) return 0;
+        return (int) ((current * 100) / max);
     }
 }

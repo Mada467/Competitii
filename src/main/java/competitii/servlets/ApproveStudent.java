@@ -10,6 +10,10 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Servlet responsabil pentru aprobarea unei înscrieri.
+ * Această acțiune modifică statusul aplicației din PENDING în ACCEPTED.
+ */
 @WebServlet(name = "ApproveStudent", value = "/ApproveStudent")
 public class ApproveStudent extends HttpServlet {
 
@@ -18,52 +22,65 @@ public class ApproveStudent extends HttpServlet {
     @Inject
     private CompetitionsBean competitionsBean;
 
-    // Folosim doPost deoarece formularul din JSP este de tip POST pentru securitate
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // 1. Verificare securitate: Doar REPRESENTATIVE poate aproba
-        HttpSession session = request.getSession(false);
-        User user = (session != null) ? (User) session.getAttribute("user") : null;
-
-        if (user == null || !"REPRESENTATIVE".equals(user.getRole())) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Doar reprezentanții pot aproba participanți!");
+        // 1. Verificăm dacă utilizatorul are dreptul de a efectua această acțiune
+        if (!isAuthorized(request)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Acces neautorizat.");
             return;
         }
 
         try {
-            // 2. Preluăm parametrii (Am potrivit numele cu cele din formularul JSP: application_id și competition_id)
-            String appIdStr = request.getParameter("application_id");
-            String compIdStr = request.getParameter("competition_id");
+            // 2. Extragem ID-urile necesare pentru procesare
+            String appIdParam = request.getParameter("application_id");
+            String compIdParam = request.getParameter("competition_id");
 
-            if (appIdStr == null || compIdStr == null) {
-                response.sendRedirect(request.getContextPath() + "/Competitions?error=missingData");
+            // Validare de bază pentru parametri (prevenim NullPointerException)
+            if (appIdParam == null || compIdParam == null) {
+                response.sendRedirect(request.getContextPath() + "/Competitions");
                 return;
             }
 
-            Long appId = Long.parseLong(appIdStr);
-            Long compId = Long.parseLong(compIdStr);
+            Long appId = Long.parseLong(appIdParam);
+            Long compId = Long.parseLong(compIdParam);
 
-            // 3. Aprobăm aplicația folosind metoda din Bean
-            boolean success = competitionsBean.approveApplication(appId);
+            // 3. Executăm logica de business
+            boolean isApproved = competitionsBean.approveApplication(appId);
 
-            // 4. Redirecționăm înapoi la listă cu mesaj de succes sau eroare
-            if (success) {
-                response.sendRedirect(request.getContextPath() + "/ViewApplications?id=" + compId + "&approved=true");
+            // 4. Redirecționăm înapoi la pagina de detalii a competiției cu un indicator de status
+            String redirectUrl = request.getContextPath() + "/ViewApplications?id=" + compId;
+            if (isApproved) {
+                response.sendRedirect(redirectUrl + "&approved=true");
             } else {
-                response.sendRedirect(request.getContextPath() + "/ViewApplications?id=" + compId + "&error=failed");
+                response.sendRedirect(redirectUrl + "&error=approvalFailed");
             }
 
+        } catch (NumberFormatException e) {
+            LOGGER.log(Level.WARNING, "Format ID invalid primit în ApproveStudent");
+            response.sendRedirect(request.getContextPath() + "/Competitions?error=invalidFormat");
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Eroare la aprobare", e);
-            response.sendRedirect(request.getContextPath() + "/Competitions?error=true");
+            LOGGER.log(Level.SEVERE, "Eroare neprevăzută la aprobarea studentului", e);
+            response.sendRedirect(request.getContextPath() + "/Competitions?error=serverError");
         }
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // Dacă cineva încearcă să acceseze direct URL-ul, îl trimitem la listă
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // Acțiunile de modificare (aprobare/respingere) nu se fac prin GET
         response.sendRedirect(request.getContextPath() + "/Competitions");
+    }
+
+    /**
+     * Helper pentru verificarea rolului de reprezentant.
+     */
+    private boolean isAuthorized(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) return false;
+
+        User user = (User) session.getAttribute("user");
+        return user != null && "REPRESENTATIVE".equals(user.getRole());
     }
 }

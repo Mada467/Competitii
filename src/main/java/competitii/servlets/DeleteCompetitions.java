@@ -7,11 +7,16 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
+/**
+ * Servlet responsabil pentru ștergerea în masă (bulk delete) a competițiilor.
+ * Procesul include și ștergerea în cascadă a înscrierilor asociate.
+ */
 @WebServlet(name = "DeleteCompetitions", value = "/DeleteCompetitions")
 public class DeleteCompetitions extends HttpServlet {
 
@@ -24,49 +29,53 @@ public class DeleteCompetitions extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // 1. Verificăm securitatea (doar reprezentantul poate șterge)
-        HttpSession session = request.getSession(false);
-        User user = (session != null) ? (User) session.getAttribute("user") : null;
-
-        if (user == null || !"REPRESENTATIVE".equals(user.getRole())) {
-            LOGGER.log(Level.WARNING, "Tentativă de ștergere neautorizată de la: {0}",
-                    user != null ? user.getUsername() : "unknown");
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Acces refuzat! Doar reprezentanții pot șterge competiții.");
+        // 1. Verificăm securitatea folosind metoda helper pentru consistență
+        if (!isAuthorized(request)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Acces interzis!");
             return;
         }
 
-        // 2. Preluăm array-ul de ID-uri din checkbox-uri
-        String[] competitionIdsAsString = request.getParameterValues("competition_ids");
+        // 2. Preluăm ID-urile din checkbox-uri
+        String[] idsArray = request.getParameterValues("competition_ids");
 
-        if (competitionIdsAsString == null || competitionIdsAsString.length == 0) {
-            LOGGER.log(Level.INFO, "Nicio competiție selectată pentru ștergere");
+        if (idsArray == null || idsArray.length == 0) {
             response.sendRedirect(request.getContextPath() + "/Competitions?message=noSelection");
             return;
         }
 
         try {
-            List<Long> ids = new ArrayList<>();
-            for (String idStr : competitionIdsAsString) {
-                ids.add(Long.parseLong(idStr));
-            }
+            // 3. Conversie modernă din String[] în List<Long> folosind Streams
+            List<Long> idsToClear = Arrays.stream(idsArray)
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
 
-            LOGGER.log(Level.INFO, "Ștergere competiții: {0} de către {1}",
-                    new Object[]{ids, user.getUsername()});
+            // Logăm acțiunea pentru audit (important în aplicații de business)
+            User user = (User) request.getSession().getAttribute("user");
+            LOGGER.log(Level.INFO, "Utilizatorul {0} șterge competițiile: {1}",
+                    new Object[]{user.getUsername(), idsToClear});
 
-            // 3. Apelăm ștergerea în Bean (JTA transaction managed)
-            competitionsBean.deleteCompetitions(ids);
+            // 4. Executăm ștergerea
+            competitionsBean.deleteCompetitions(idsToClear);
 
-            LOGGER.log(Level.INFO, "Ștergere reușită pentru {0} competiții", ids.size());
-
-            // 4. Redirecționăm cu mesaj de succes
-            response.sendRedirect(request.getContextPath() + "/Competitions?deleted=success");
+            response.sendRedirect(request.getContextPath() + "/Competitions?deleted=true");
 
         } catch (NumberFormatException e) {
-            LOGGER.log(Level.SEVERE, "ID-uri invalide pentru ștergere", e);
-            response.sendRedirect(request.getContextPath() + "/Competitions?error=invalidIds");
+            LOGGER.log(Level.WARNING, "Format ID invalid la ștergere");
+            response.sendRedirect(request.getContextPath() + "/Competitions?error=invalidFormat");
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Eroare la ștergerea competițiilor", e);
-            response.sendRedirect(request.getContextPath() + "/Competitions?error=deleteFailed");
+            LOGGER.log(Level.SEVERE, "Eroare critică la ștergere", e);
+            response.sendRedirect(request.getContextPath() + "/Competitions?error=serverError");
         }
+    }
+
+    /**
+     * Verifică dacă utilizatorul curent are dreptul de a șterge resurse.
+     */
+    private boolean isAuthorized(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) return false;
+
+        User user = (User) session.getAttribute("user");
+        return user != null && "REPRESENTATIVE".equals(user.getRole());
     }
 }

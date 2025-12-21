@@ -13,55 +13,88 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Servlet responsabil pentru afișarea listei de competiții.
+ * Include funcționalități de căutare, paginare și verificarea statusului de înscriere.
+ */
 @WebServlet(name = "Competitions", value = "/Competitions")
 public class Competitions extends HttpServlet {
 
     @Inject
     private CompetitionsBean competitionsBean;
 
+    private static final int PAGE_SIZE = 5;
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // 1. Preluăm toate competițiile și aplicăm filtrarea (Search)
         String keyword = request.getParameter("search");
-        List<Competition> competitions = competitionsBean.getAllCompetitions();
+        List<Competition> allCompetitions = competitionsBean.getAllCompetitions();
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            String lowerKeyword = keyword.toLowerCase();
-            competitions = competitions.stream()
-                    .filter(c -> c.getName().toLowerCase().contains(lowerKeyword) ||
-                            c.getDescription().toLowerCase().contains(lowerKeyword))
-                    .collect(Collectors.toList());
+        if (isKeywordValid(keyword)) {
+            allCompetitions = filterCompetitions(allCompetitions, keyword.toLowerCase());
         }
 
-        int page = 1;
-        int pageSize = 5;
-        try {
-            String pageParam = request.getParameter("page");
-            if (pageParam != null) page = Integer.parseInt(pageParam);
-        } catch (NumberFormatException e) { page = 1; }
+        // 2. Logica de paginare simplificată
+        int currentPage = parsePageParam(request.getParameter("page"));
+        int totalCompetitions = allCompetitions.size();
+        int totalPages = (int) Math.ceil((double) totalCompetitions / PAGE_SIZE);
 
-        int totalCompetitions = competitions.size();
-        int fromIndex = (page - 1) * pageSize;
-        int toIndex = Math.min(fromIndex + pageSize, totalCompetitions);
-        List<Competition> paginatedList = (fromIndex < totalCompetitions && fromIndex >= 0) ? competitions.subList(fromIndex, toIndex) : List.of();
+        List<Competition> paginatedList = getPaginatedSublist(allCompetitions, currentPage, totalCompetitions);
 
-        Map<Long, Boolean> appliedStatus = new HashMap<>();
-        HttpSession session = request.getSession(false);
-        User currentUser = (session != null) ? (User) session.getAttribute("user") : null;
+        // 3. Verificăm cine este înscris (pentru a afișa butoane diferite în UI)
+        Map<Long, Boolean> appliedStatus = checkApplicationsForUser(request, paginatedList);
 
-        // AICI E CHEIA: Verificăm înscrierile și pentru ELEV, nu doar pentru STUDENT
-        if (currentUser != null && ("STUDENT".equals(currentUser.getRole()) || "ELEV".equals(currentUser.getRole()))) {
-            for (Competition comp : paginatedList) {
-                boolean hasApplied = competitionsBean.hasStudentApplied(currentUser.getId(), comp.getId());
-                appliedStatus.put(comp.getId(), hasApplied);
-            }
-        }
-
+        // 4. Setăm atributele pentru JSP
         request.setAttribute("competitions", paginatedList);
-        request.setAttribute("currentPage", page);
-        request.setAttribute("totalPages", (int) Math.ceil((double) totalCompetitions / pageSize));
+        request.setAttribute("currentPage", currentPage);
+        request.setAttribute("totalPages", totalPages);
         request.setAttribute("searchKeyword", keyword);
         request.setAttribute("appliedStatus", appliedStatus);
 
         request.getRequestDispatcher("/WEB-INF/pages/competitions.jsp").forward(request, response);
+    }
+
+    // --- METODE HELPER PENTRU CLEAN CODE ---
+
+    private boolean isKeywordValid(String keyword) {
+        return keyword != null && !keyword.trim().isEmpty();
+    }
+
+    private List<Competition> filterCompetitions(List<Competition> list, String lowerKeyword) {
+        return list.stream()
+                .filter(c -> c.getName().toLowerCase().contains(lowerKeyword) ||
+                        c.getDescription().toLowerCase().contains(lowerKeyword))
+                .collect(Collectors.toList());
+    }
+
+    private int parsePageParam(String pageParam) {
+        try {
+            if (pageParam != null) return Math.max(1, Integer.parseInt(pageParam));
+        } catch (NumberFormatException e) { /* default to 1 */ }
+        return 1;
+    }
+
+    private List<Competition> getPaginatedSublist(List<Competition> list, int page, int total) {
+        int fromIndex = (page - 1) * PAGE_SIZE;
+        if (fromIndex >= total || fromIndex < 0) return List.of();
+
+        int toIndex = Math.min(fromIndex + PAGE_SIZE, total);
+        return list.subList(fromIndex, toIndex);
+    }
+
+    private Map<Long, Boolean> checkApplicationsForUser(HttpServletRequest request, List<Competition> list) {
+        Map<Long, Boolean> statusMap = new HashMap<>();
+        HttpSession session = request.getSession(false);
+        User user = (session != null) ? (User) session.getAttribute("user") : null;
+
+        // Verificăm înscrierile doar dacă utilizatorul este logat și are rol de STUDENT sau ELEV
+        if (user != null && ("STUDENT".equals(user.getRole()) || "ELEV".equals(user.getRole()))) {
+            for (Competition comp : list) {
+                boolean hasApplied = competitionsBean.hasStudentApplied(user.getId(), comp.getId());
+                statusMap.put(comp.getId(), hasApplied);
+            }
+        }
+        return statusMap;
     }
 }

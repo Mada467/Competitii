@@ -10,8 +10,13 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Bean responsabil pentru gestionarea utilizatorilor și a procesului de autentificare.
+ */
 @Stateless
 public class UsersBean {
+
+    private static final Logger LOGGER = Logger.getLogger(UsersBean.class.getName());
 
     @PersistenceContext(unitName = "default")
     private EntityManager entityManager;
@@ -19,11 +24,10 @@ public class UsersBean {
     @Inject
     private PasswordBean passwordBean;
 
-    private static final Logger LOGGER = Logger.getLogger(UsersBean.class.getName());
-
     public boolean createUser(String username, String email, String password, String role) {
-        // Verificăm dacă utilizatorul există deja (Cerința: Unique User)
+        // Bună practică: Verificăm imediat dacă username-ul este deja ocupat
         if (findByUsername(username) != null) {
+            LOGGER.log(Level.INFO, "Tentativă de creare cont duplicat: {0}", username);
             return false;
         }
 
@@ -32,32 +36,39 @@ public class UsersBean {
             user.setUsername(username);
             user.setEmail(email);
 
-            // Securizare parolă
-            String hashedPassword = passwordBean.hashPassword(password);
-            user.setPassword(hashedPassword);
+            // Hash-uim parola înainte de salvare pentru securitate
+            user.setPassword(passwordBean.hashPassword(password));
 
-            // Validare Rol (STUDENT, ADMIN, REPRESENTATIVE)
-            user.setRole(role.toUpperCase());
+            // Validare simplă a rolului pentru a asigura consistența datelor în DB
+            String finalRole = (role != null) ? role.toUpperCase() : "STUDENT";
+            user.setRole(finalRole);
 
             entityManager.persist(user);
             return true;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Eroare la crearea utilizatorului", e);
+            LOGGER.log(Level.SEVERE, "Eroare la persistența utilizatorului: " + username, e);
             return false;
         }
     }
 
+    /**
+     * Verifică credențialele utilizatorului.
+     * @return Obiectul User dacă datele sunt corecte, null în caz contrar.
+     */
     public User authenticate(String username, String password) {
         try {
             String hashedPassword = passwordBean.hashPassword(password);
 
+            // Folosim query-ul pentru a găsi potrivirea exactă (user + hash)
             return entityManager.createQuery(
                             "SELECT u FROM User u WHERE u.username = :user AND u.password = :pass", User.class)
                     .setParameter("user", username)
                     .setParameter("pass", hashedPassword)
                     .getSingleResult();
+
         } catch (NoResultException ex) {
-            LOGGER.log(Level.WARNING, "Autentificare esuata pentru: {0}", username);
+            // Nu logăm parola, doar faptul că autentificarea a eșuat
+            LOGGER.log(Level.WARNING, "Autentificare eșuată pentru user: {0}", username);
             return null;
         }
     }
@@ -68,11 +79,13 @@ public class UsersBean {
                     .setParameter("user", username)
                     .getSingleResult();
         } catch (NoResultException e) {
+            // Este normal să nu găsim user-ul uneori (ex: la înregistrare), deci nu logăm eroare
             return null;
         }
     }
 
     public List<User> getAllUsers() {
-        return entityManager.createQuery("SELECT u FROM User u", User.class).getResultList();
+        return entityManager.createQuery("SELECT u FROM User u", User.class)
+                .getResultList();
     }
 }
