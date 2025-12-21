@@ -1,10 +1,22 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<persistence xmlns="https://jakarta.ee/xml/ns/persistence" version="3.0">
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd" version="3.0">
     <persistence-unit name="default" transaction-type="JTA">
+        <!--  Data Source pentru JTA (container-managed transactions)  -->
         <jta-data-source>jdbc/CompetitiiResource</jta-data-source>
+        <!--  Toate entitățile JPA (CORECTATE)  -->
         <class>competitii.entities.Competition</class>
+        <class>competitii.entities.Application</class>
+        <class>competitii.entities.User</class>
         <properties>
-            <property name="jakarta.persistence.schema-generation.database.action" value="create-or-extend-tables" />
+            <!--  Schema generation pentru dezvoltare  -->
+            <property name="jakarta.persistence.schema-generation.database.action" value="create-or-extend-tables"/>
+            <!--  Hibernate properties pentru JTA  -->
+            <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
+            <property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.format_sql" value="true"/>
+            <!--  IMPORTANT: Flush mode pentru JTA transactions  -->
+            <property name="hibernate.transaction.jta.platform" value="org.hibernate.engine.transaction.jta.platform.internal.SunOneJtaPlatform"/>
+            <!--  Logging pentru debugging  -->
+            <property name="hibernate.use_sql_comments" value="true"/>
         </properties>
     </persistence-unit>
 </persistence>

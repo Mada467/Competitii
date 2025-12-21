@@ -1,14 +1,15 @@
 <%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@taglib prefix="t" tagdir="/WEB-INF/tags" %>
+<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-<t:pageTemplate pageTitle="Competitii - Home">
-  <div class="py-5 text-center">
-    <h1 class="display-5 fw-bold text-body-emphasis">Bine ai venit la Competitii!</h1>
-    <div class="col-lg-6 mx-auto">
-      <p class="lead mb-4">Aceasta este o platformă modernă pentru gestionarea concursurilor academice. Proiect realizat conform Laboratorului 2.</p>
-      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-        <a href="${pageContext.request.contextPath}/about.jsp" class="btn btn-primary btn-lg px-4 gap-3">Află mai multe</a>
-      </div>
-    </div>
+<t:pageTemplate pageTitle="Acasă">
+  <%-- Hero Section --%>
+  <div class="text-center mb-5">
+    <h1 class="display-4 fw-bold text-primary mb-3">
+      <i class="bi bi-trophy-fill"></i> Competiții CSEE
+    </h1>
+    <p class="lead text-muted mb-4">
+      Platformă de management pentru competițiile Departamentului de Calculatoare și Tehnologia Informației
+    </p>
   </div>
 </t:pageTemplate>
