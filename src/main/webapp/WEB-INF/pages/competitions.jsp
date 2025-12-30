@@ -129,13 +129,20 @@
                   </div>
                 </c:when>
 
-                <%-- CAZUL 2: A fost RESPINS - NU poate aplica din nou --%>
+                <%-- CAZUL 2: A fost RESPINS - cu opțiune de retragere --%>
                 <c:when test="${appStatus == 'REJECTED'}">
                   <div class="text-center">
-                    <span class="badge bg-danger px-3 py-2">
+                    <span class="badge bg-danger px-3 py-2 mb-2">
                       <i class="bi bi-x-circle-fill"></i> RESPINS
                     </span>
-                    <small class="d-block text-muted mt-1">Nu poți aplica din nou</small>
+                    <small class="d-block text-muted mb-2">Nu poți aplica din nou</small>
+                    <form action="${pageContext.request.contextPath}/WithdrawFromCompetition" method="POST"
+                          onsubmit="return confirm('Ești sigur că vrei să te retragi din această competiție?');">
+                      <input type="hidden" name="competition_id" value="${comp.id}">
+                      <button type="submit" class="btn btn-link btn-sm text-danger text-decoration-none">
+                        Retrage-te
+                      </button>
+                    </form>
                   </div>
                 </c:when>
 
@@ -207,27 +214,6 @@
     </div>
   </c:if>
 
-  <script>
-    document.getElementById('btnDelete')?.addEventListener('click', function() {
-      const selected = document.querySelectorAll('.delete-checkbox:checked');
-      if (selected.length === 0) {
-        alert('Vă rugăm să selectați cel puțin o competiție pentru a fi ștearsă.');
-        return;
-      }
-      if (confirm('Atenție! Veți șterge ' + selected.length + ' competiții definitiv. Continuați?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '${pageContext.request.contextPath}/DeleteCompetitions';
-        selected.forEach(cb => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'competition_ids';
-          input.value = cb.getAttribute('data-competition-id');
-          form.appendChild(input);
-        });
-        document.body.appendChild(form);
-        form.submit();
-      }
-    });
-  </script>
+  <%-- Include script extern pentru funcționalitatea de ștergere --%>
+  <script src="${pageContext.request.contextPath}/resources/js/competitions.js"></script>
 </t:pageTemplate>
