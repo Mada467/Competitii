@@ -4,13 +4,8 @@
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
 <t:pageTemplate pageTitle="Lista Competiții">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="mb-4">
     <h1 class="fw-bold text-dark">Competiții CSEE</h1>
-    <c:if test="${sessionScope.user.role == 'REPRESENTATIVE'}">
-      <a href="${pageContext.request.contextPath}/AddCompetition" class="btn btn-warning fw-bold text-dark shadow-sm">
-        <i class="bi bi-plus-lg"></i> Competiție Nouă
-      </a>
-    </c:if>
   </div>
 
   <%-- Mesaje de feedback din URL (Status messages) --%>
@@ -18,6 +13,12 @@
     <c:when test="${param.withdrawn == 'true'}">
       <div class="alert alert-warning alert-dismissible fade show shadow-sm border-warning" role="alert">
         <i class="bi bi-info-circle-fill me-2"></i> Te-ai retras cu succes din competiție!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    </c:when>
+    <c:when test="${param.applied == 'true'}">
+      <div class="alert alert-success alert-dismissible fade show shadow-sm border-success" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> Aplicația ta a fost trimisă cu succes!
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     </c:when>
@@ -68,9 +69,9 @@
                   <i class="bi bi-calendar-event"></i> Deadline:
                 </small>
                 <span class="badge bg-light text-danger border border-danger-subtle">
-                      <fmt:parseDate value="${comp.applicationDeadline}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDate" type="both" />
-                      <fmt:formatDate value="${parsedDate}" pattern="dd MMM yyyy, HH:mm" />
-                  </span>
+                  <fmt:parseDate value="${comp.applicationDeadline}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDate" type="both" />
+                  <fmt:formatDate value="${parsedDate}" pattern="dd MMM yyyy, HH:mm" />
+                </span>
               </div>
             </div>
 
@@ -89,9 +90,9 @@
                 </c:otherwise>
               </c:choose>
               <c:if test="${comp.internal}">
-                  <span class="badge rounded-pill bg-warning-subtle text-dark border border-warning-subtle">
-                      <i class="bi bi-shield-lock"></i> Doar UPT
-                  </span>
+                <span class="badge rounded-pill bg-warning-subtle text-dark border border-warning-subtle">
+                  <i class="bi bi-shield-lock"></i> Doar UPT
+                </span>
               </c:if>
             </div>
           </div>
@@ -109,31 +110,70 @@
 
               <%-- Acțiuni Student / Elev --%>
             <c:if test="${sessionScope.user.role == 'STUDENT' || sessionScope.user.role == 'ELEV'}">
+              <c:set var="appStatus" value="${applicationStatus[comp.id]}" />
+
               <c:choose>
-                <c:when test="${appliedStatus[comp.id] == true}">
+                <%-- CAZUL 1: A fost APROBAT --%>
+                <c:when test="${appStatus == 'ACCEPTED'}">
                   <div class="text-center">
-                    <span class="text-success d-block mb-1 small fw-bold"><i class="bi bi-check-circle-fill"></i> Înscris</span>
-                    <form action="${pageContext.request.contextPath}/WithdrawFromCompetition" method="POST" onsubmit="return confirm('Ești sigur că vrei să anulezi înscrierea?');">
+                    <span class="badge bg-success px-3 py-2 mb-2">
+                      <i class="bi bi-check-circle-fill"></i> APROBAT
+                    </span>
+                    <form action="${pageContext.request.contextPath}/WithdrawFromCompetition" method="POST"
+                          onsubmit="return confirm('Ești sigur că vrei să te retragi?');">
                       <input type="hidden" name="competition_id" value="${comp.id}">
-                      <button type="submit" class="btn btn-link btn-sm text-danger text-decoration-none p-0">
+                      <button type="submit" class="btn btn-link btn-sm text-danger text-decoration-none">
                         Retrage-te
                       </button>
                     </form>
                   </div>
                 </c:when>
 
-                <c:when test="${comp.status == 'OPEN'}">
-                  <button type="button" class="btn btn-success px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#applyModal${comp.id}">
+                <%-- CAZUL 2: A fost RESPINS - NU poate aplica din nou --%>
+                <c:when test="${appStatus == 'REJECTED'}">
+                  <div class="text-center">
+                    <span class="badge bg-danger px-3 py-2">
+                      <i class="bi bi-x-circle-fill"></i> RESPINS
+                    </span>
+                    <small class="d-block text-muted mt-1">Nu poți aplica din nou</small>
+                  </div>
+                </c:when>
+
+                <%-- CAZUL 3: Aplicația este ÎN AȘTEPTARE --%>
+                <c:when test="${appStatus == 'PENDING'}">
+                  <div class="text-center">
+                    <span class="badge bg-warning text-dark px-3 py-2 mb-2">
+                      <i class="bi bi-clock-history"></i> ÎN AȘTEPTARE
+                    </span>
+                    <form action="${pageContext.request.contextPath}/WithdrawFromCompetition" method="POST"
+                          onsubmit="return confirm('Ești sigur că vrei să anulezi aplicația?');">
+                      <input type="hidden" name="competition_id" value="${comp.id}">
+                      <button type="submit" class="btn btn-link btn-sm text-danger text-decoration-none">
+                        Retrage aplicația
+                      </button>
+                    </form>
+                  </div>
+                </c:when>
+
+                <%-- CAZUL 4: NU a aplicat încă - poate aplica --%>
+                <c:when test="${comp.status == 'OPEN' && appStatus == null}">
+                  <button type="button" class="btn btn-success px-4 fw-bold shadow-sm"
+                          data-bs-toggle="modal" data-bs-target="#applyModal${comp.id}">
                     Aplică
                   </button>
                 </c:when>
+
+                <%-- CAZUL 5: Competiția este închisă --%>
+                <c:otherwise>
+                  <span class="badge bg-secondary px-3 py-2">Închisă</span>
+                </c:otherwise>
               </c:choose>
             </c:if>
           </div>
         </div>
       </div>
 
-      <%-- Modal Înscriere (Identic cu al tău, dar adăugăm un mic styling) --%>
+      <%-- Modal Înscriere --%>
       <div class="modal fade" id="applyModal${comp.id}" data-bs-backdrop="static" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content border-0 shadow">
@@ -149,7 +189,7 @@
                 <textarea name="additional_info" class="form-control" rows="3" required placeholder="Scrie aici..."></textarea>
               </div>
               <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary" data-bs-modal="dismiss">Anulează</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anulează</button>
                 <button type="submit" class="btn btn-success px-4 fw-bold">Trimite Aplicația</button>
               </div>
             </form>
@@ -158,17 +198,6 @@
       </div>
     </c:forEach>
   </div>
-
-  <%-- Paginare --%>
-  <nav aria-label="Page navigation">
-    <ul class="pagination justify-content-center">
-      <c:forEach begin="1" end="${totalPages}" var="i">
-        <li class="page-item ${currentPage == i ? 'active' : ''}">
-          <a class="page-link" href="${pageContext.request.contextPath}/Competitions?page=${i}&search=${searchKeyword}">${i}</a>
-        </li>
-      </c:forEach>
-    </ul>
-  </nav>
 
   <c:if test="${not empty competitions && sessionScope.user.role == 'REPRESENTATIVE'}">
     <div class="mt-3">

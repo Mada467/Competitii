@@ -85,17 +85,6 @@
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <div class="form-check form-switch p-3 border rounded shadow-sm bg-white">
-                                <input type="checkbox" name="is_internal" class="form-check-input ms-0 me-2"
-                                       id="checkInternal" ${competition.internal ? 'checked' : ''}>
-                                <label class="form-check-label fw-bold text-dark" for="checkInternal">
-                                    Restricție Instituțională (@student.upt.ro)
-                                </label>
-                                <div class="form-text ms-4">Dacă este activată, doar utilizatorii cu email oficial se pot înscrie.</div>
-                            </div>
-                        </div>
-
                             <%-- Zona de butoane --%>
                         <div class="mt-4 border-top pt-3 d-flex justify-content-end gap-2">
                             <a href="${pageContext.request.contextPath}/Competitions"

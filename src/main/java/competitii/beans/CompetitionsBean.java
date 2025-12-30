@@ -100,7 +100,14 @@ public class CompetitionsBean {
             return "Necesită email de student UPT (@student.upt.ro)!";
         }
 
-        if (hasStudentApplied(userId, competitionId)) return "Ai aplicat deja!";
+        // Verificăm dacă a aplicat deja și care e statusul
+        String currentStatus = getApplicationStatus(userId, competitionId);
+        if (currentStatus != null) {
+            if ("REJECTED".equals(currentStatus)) {
+                return "Ai fost respins! Nu poți aplica din nou.";
+            }
+            return "Ai aplicat deja!";
+        }
 
         if (comp.getMaxParticipants() != null) {
             long currentApps = getApplicationsCount(competitionId);
@@ -119,7 +126,7 @@ public class CompetitionsBean {
     }
 
     /**
-     * METODA NOUĂ: Rezolvă eroarea din Servlet-ul WithdrawFromCompetition
+     * Retrage studentul din competiție (șterge aplicația)
      */
     @Transactional
     public void withdrawFromCompetition(Long userId, Long competitionId) {
@@ -136,16 +143,25 @@ public class CompetitionsBean {
         }
     }
 
+    /**
+     * Aprobă o aplicație (schimbă statusul din PENDING în ACCEPTED)
+     */
     @Transactional
     public boolean approveApplication(Long applicationId) {
         return updateApplicationStatus(applicationId, "ACCEPTED");
     }
 
+    /**
+     * Respinge o aplicație (schimbă statusul din PENDING în REJECTED)
+     */
     @Transactional
     public boolean rejectApplication(Long applicationId) {
         return updateApplicationStatus(applicationId, "REJECTED");
     }
 
+    /**
+     * Schimbă statusul unei aplicații (doar dacă e PENDING)
+     */
     private boolean updateApplicationStatus(Long appId, String newStatus) {
         Application app = entityManager.find(Application.class, appId);
         if (app != null && "PENDING".equals(app.getStatus())) {
@@ -156,6 +172,9 @@ public class CompetitionsBean {
         return false;
     }
 
+    /**
+     * Returnează toate aplicațiile pentru o competiție
+     */
     public List<Application> getApplicationsForCompetition(Long competitionId) {
         return entityManager.createQuery(
                         "SELECT a FROM Application a JOIN FETCH a.student WHERE a.competition.id = :compId",
@@ -164,6 +183,9 @@ public class CompetitionsBean {
                 .getResultList();
     }
 
+    /**
+     * Verifică dacă un student a aplicat la o competiție
+     */
     public boolean hasStudentApplied(Long userId, Long competitionId) {
         Long count = entityManager.createQuery(
                         "SELECT COUNT(a) FROM Application a WHERE a.student.id = :uId AND a.competition.id = :cId", Long.class)
@@ -173,6 +195,32 @@ public class CompetitionsBean {
         return count > 0;
     }
 
+    /**
+     * METODĂ NOUĂ: Returnează statusul aplicației unui student
+     * Returnează: "PENDING", "ACCEPTED", "REJECTED" sau null dacă nu a aplicat
+     */
+    public String getApplicationStatus(Long userId, Long competitionId) {
+        try {
+            List<Application> apps = entityManager.createQuery(
+                            "SELECT a FROM Application a WHERE a.student.id = :uId AND a.competition.id = :cId",
+                            Application.class)
+                    .setParameter("uId", userId)
+                    .setParameter("cId", competitionId)
+                    .getResultList();
+
+            if (apps.isEmpty()) {
+                return null; // Nu a aplicat
+            }
+            return apps.get(0).getStatus(); // Returnează PENDING, ACCEPTED sau REJECTED
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Eroare la verificarea statusului aplicației", e);
+            return null;
+        }
+    }
+
+    /**
+     * Numără câte aplicații are o competiție
+     */
     private long getApplicationsCount(Long competitionId) {
         return (long) entityManager.createQuery("SELECT COUNT(a) FROM Application a WHERE a.competition.id = :compId")
                 .setParameter("compId", competitionId)

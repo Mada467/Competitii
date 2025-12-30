@@ -56,23 +56,11 @@
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Data Start Înscrieri</label>
-                                    <%-- Am schimbat name="application_start" în "start_date" pentru a se potrivi cu Servlet-ul --%>
                                 <input type="datetime-local" name="start_date" class="form-control shadow-sm" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Termen Limită (Deadline)</label>
-                                    <%-- Am schimbat name="application_deadline" în "deadline" pentru a se potrivi cu Servlet-ul --%>
                                 <input type="datetime-local" name="deadline" class="form-control shadow-sm" required>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="form-check form-switch p-3 bg-light rounded border">
-                                <input class="form-check-input ms-0 me-2" type="checkbox" name="is_internal" id="internalCheck">
-                                <label class="form-check-label fw-bold" for="internalCheck">
-                                    Restricție Instituțională (@student.upt.ro)
-                                </label>
-                                <div class="form-text ms-4">Dacă este bifat, doar studenții cu email oficial se pot înscrie.</div>
                             </div>
                         </div>
 
